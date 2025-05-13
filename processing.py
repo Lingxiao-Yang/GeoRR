@@ -20,8 +20,8 @@ class FilterHR:
     def _lowpass_filter(current: np.ndarray, cutoff: float, fs: int) -> np.ndarray:
         nyquist = 0.5 * fs
         normal_cutoff = cutoff / nyquist
-        b, a = signal.butter(1, normal_cutoff, btype='low', analog=False)
-        return signal.filtfilt(b, a, current)
+        b, a = signal.butter(5, normal_cutoff, btype='low', analog=False)
+        return signal.lfilter(b, a, current)
 
     def __init__(
         self,
@@ -93,8 +93,19 @@ class FilterHR:
 
             sig_filt  = np.abs(coeffs).sum(axis=0)       # wide‑band envelope
             
+            # Scale to 0-1
+            sig_filt  = (sig_filt - sig_filt.min()) / (sig_filt.max() - sig_filt.min())
+            
+            # Envelope detection
+            cutoff_hz = 300 / 60.0 #300 bpm
+            envelop = sig_filt
+            envelop  = self._lowpass_filter(envelop, cutoff_hz, self.sample_rate)
+            # Scale to 0-1
+            envelop  = (envelop - envelop.min()) / (envelop.max() - envelop.min())
+            
             plt.figure(figsize=(12, 4))
             plt.plot(sig_filt)
+            plt.plot(envelop, color='red', linestyle='--')
             plt.title(f"{self.channels[n]} CWT filtered signal")
             plt.xlabel("Frame")
             plt.ylabel("Intensity")
@@ -105,10 +116,13 @@ class FilterHR:
                 plt.show()
             else:
                 plt.close()
+            
+
+        
 
             # ---------- (3) FFT peak search -------------------------
-            freqs = np.fft.fftfreq(len(sig_filt), 1 / self.sample_rate) * 60
-            spectrum = np.abs(np.fft.fft(sig_filt))
+            freqs = np.fft.fftfreq(len(envelop), 1 / self.sample_rate) * 60
+            spectrum = np.abs(np.fft.fft(envelop))
             # band‑pass mask (50–190 bpm)
             band_mask          = (freqs >= 50) & (freqs <= 190)
             spectrum[~band_mask] = 0.0

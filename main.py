@@ -13,11 +13,12 @@ from processing import FilterHR  # ← your Phase‑III implementation
 #                      tweakable parameters                                   #
 # --------------------------------------------------------------------------- #
 # TEST_FILE     = "./Data/environment_1_60s_20kHz.txt"   # input path
-TEST_FILE     = "./Data/test1.txt"   # input path
+# TEST_FILE     = "./Data/test1.txt"   # input path
+TEST_FILE     = "./Data/holdbreath_Shufeng_5.12_20s_20kHz_1.64V_200mVdiv.txt"   # input path
 OUTPUT_ROOT   = "./Output"           # parent of all run folders
 SAMPLE_RATE   = 20000                  # Hz
 VISUALIZE     = True                 # save PNGs of raw traces
-NUM_CHANNELS  = 1                    # fixed by spec
+NUM_CHANNELS  = 4                    # fixed by spec
 # --------------------------------------------------------------------------- #
 
 
