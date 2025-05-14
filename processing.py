@@ -4,6 +4,7 @@ import fcwt
 import pywt
 import matplotlib.pyplot as plt
 from scipy import signal
+import noisereduce as nr
 
 
 class FilterHR:
@@ -27,6 +28,7 @@ class FilterHR:
         self,
         channels: list[str],
         intensity: np.ndarray,
+        noise: np.ndarray | None = None,
         sample_rate: int = 2e4,
         output_DIR: str | None = None,
         verbose: bool = False
@@ -36,6 +38,7 @@ class FilterHR:
         self.sample_rate = sample_rate
         self.output_DIR = output_DIR
         self.verbose = verbose
+        self.noise = noise
 
     def run(self):
         n_channels, T = self.I.shape
@@ -45,14 +48,30 @@ class FilterHR:
 
         for n in range(n_channels):
             # ---------- (0) pre‑processing --------------------------
-            sig_filt = self.I[n] - self.I[n].mean()          # detrend (zero‑mean)
+            sig_filt = nr.reduce_noise(y=self.I[n], sr=self.sample_rate, y_noise=self.noise[n], stationary=True, n_std_thresh_stationary=1.5)
+            
+            plt.figure(figsize=(12, 4))
+            plt.plot(self.I[n], label='Original Signal')
+            plt.plot(sig_filt, label='Filtered Signal')
+            plt.title(f"{self.channels[n]} - Pre-processed Signal")
+            plt.xlabel("Frame")
+            plt.ylabel("Intensity")
+            plt.legend()
+            plt.xlim(0, T)
+            plt.tight_layout()
+            plt.savefig(os.path.join(self.output_DIR, f"preprocessed_{self.channels[n]}.png"))
+            if self.verbose:
+                plt.show()
+            else:
+                plt.close()
+            
+            sig_filt = sig_filt - sig_filt.mean()  # remove DC offset
             sig_filt = self._lowpass_filter(sig_filt, 400, self.sample_rate)  # lowpass filter
 
             # ---------- (1) wide‑band CWT wavelet filter ------------
             # Option 1: use fcwt
             #! Question: Only Morlet wavelet defined
             # _freqs, coeffs = fcwt.cwt(input=sig_filt, fs=10000, f0=7, f1=54, fn=10)
-            
             
             # Option 2: use pywt
             dt = 1 / self.sample_rate

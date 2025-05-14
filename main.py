@@ -1,6 +1,3 @@
-import csv
-import datetime
-import os
 import time
 from pathlib import Path
 
@@ -12,15 +9,16 @@ from processing import FilterHR  # ← your Phase‑III implementation
 # --------------------------------------------------------------------------- #
 #                      tweakable parameters                                   #
 # --------------------------------------------------------------------------- #
-# TEST_FILE     = "./Data/environment_1_60s_20kHz.txt"   # input path
+TEST_FILE     = "./Data/lie_breath_Lingxiao_60s_10kHz.txt"   # input path
 # TEST_FILE     = "./Data/test1.txt"   # input path
-TEST_FILE     = "./Data/holdbreath_Shufeng_5.12_20s_20kHz_1.64V_200mVdiv.txt"   # input path
+# TEST_FILE     = "./Data/holdbreath_Shufeng_5.12_20s_20kHz_1.64V_200mVdiv.txt"   # input path
+NOISE_FILE    = "./Data/environment_5.14_60s_10kHz.txt"
 OUTPUT_ROOT   = "./Output"           # parent of all run folders
-SAMPLE_RATE   = 20000                  # Hz
+SAMPLE_RATE   = 10000                  # Hz
 VISUALIZE     = True                 # save PNGs of raw traces
-NUM_CHANNELS  = 4                    # fixed by spec
+NUM_CHANNELS  = 2                    # fixed by spec
 # --------------------------------------------------------------------------- #
-
+np.asarray
 
 def read_intensity(path: str, n_channels: int = NUM_CHANNELS) -> np.ndarray:
     """Load `n_channels` traces from text file → shape (n_channels, T)."""
@@ -51,8 +49,8 @@ def plot_trace(trace: np.ndarray, save_dir: Path, label: str) -> None:
     plt.xlabel("Frame")
     plt.ylabel("Value")
     plt.tight_layout()
+    plt.savefig(save_dir / f"{label}_intensity.png")
     plt.show()
-    plt.savefig(save_dir / f"{label}_intensity.png", dpi=300)
     plt.close()
 
 
@@ -69,12 +67,17 @@ def main() -> None:
     channels     = [f"ch{i}" for i in range(NUM_CHANNELS)]
     intensity = [trace for trace in intensity_all]
     
+    noise_all = read_intensity(NOISE_FILE)
+    noise = [trace for trace in noise_all]
     
     # Down sample to 10000 Hz and 20sec
     down_sample_rate = 10000
     down_sample_duration = 20
     intensity = [trace[0:SAMPLE_RATE * down_sample_duration] for trace in intensity]
     intensity = [trace[::int(SAMPLE_RATE / down_sample_rate)] for trace in intensity]
+
+    noise = [trace[0:SAMPLE_RATE * down_sample_duration] for trace in noise]
+    noise = [trace[::int(SAMPLE_RATE / down_sample_rate)] for trace in noise]
 
     if VISUALIZE:
         for i, trace in enumerate(intensity):
@@ -89,7 +92,8 @@ def main() -> None:
         channels  = channels,
         sample_rate = down_sample_rate,
         output_DIR = str(out_dir),
-        verbose= True
+        verbose= True,
+        noise = noise
     )
     hr, hr_conf = phase3.run()
     print("Phase III done.\n")
